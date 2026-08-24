@@ -4,8 +4,11 @@ RUN apk add --no-cache openssl
 # Dependencies
 FROM base AS deps
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci --only=production
+# NOT: package-lock.json depoya dahil değil. Lockfile üretmek istersen
+#      `npm install` bir kez çalıştırıp package-lock.json'ı commit edebilir,
+#      ardından bu satırı `npm ci`ye geri çevirebilirsin (reproducible build).
+COPY package.json ./
+RUN npm install
 
 # Builder
 FROM base AS builder
@@ -31,10 +34,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
-COPY --chown=nextjs:nodejs entrypoint.sh ./
-# Not: RUN chmod +x entrypoint.sh işlemini root olarak yapmak daha iyi olabilir,
-# ancak alpine üzerinde sh ile çalıştırıldığı için execute izni sorun olmayabilir.
-
 USER nextjs
 
 EXPOSE 3000
@@ -42,4 +41,7 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["sh", "entrypoint.sh", "node", "server.js"]
+# Şema, db container'ında init.sql (docker-entrypoint-initdb.d) ile kurulur;
+# migration'lar db/migrations/ altından elle uygulanır. Web container'ının
+# başlangıçta migration çalıştırmasına gerek yok — doğrudan sunucuyu başlat.
+CMD ["node", "server.js"]
