@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import crypto from 'node:crypto';
 import prisma from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { withAdmin, type AuthPayload } from '@/lib/auth';
@@ -49,9 +50,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Tek seferde en fazla 100 kullanıcı' }, { status: 400 });
     }
 
-    const results = { success: 0, failed: 0, errors: [] as string[] };
-    const defaultPassword = '[GECICI_PAROLA]'; // İlk giriş sonrası zorunlu değişim
-    const passwordHash = await bcrypt.hash(defaultPassword, 12);
+    const results = {
+      success: 0,
+      failed: 0,
+      errors: [] as string[],
+      // Her kullanıcı için üretilen tek kullanımlık parola (admin dağıtır).
+      credentials: [] as { email: string; tempPassword: string }[],
+    };
+
+    // Sabit parola yerine kullanıcı başına rastgele geçici parola üret.
+    // forcePasswordChange=true ile ilk girişte değiştirilmesi zorunlu.
+    const geciciParola = () =>
+      crypto.randomBytes(9).toString("base64url"); // ~12 karakter, URL-güvenli
 
     for (const csvUser of csvUsers) {
       try {
@@ -82,6 +92,10 @@ export async function POST(request: Request) {
           continue;
         }
 
+        // Bu kullanıcıya özel geçici parola
+        const tempPassword = geciciParola();
+        const passwordHash = await bcrypt.hash(tempPassword, 12);
+
         // Oluştur
         await prisma.$transaction(async (tx) => {
           const newUser = await tx.user.create({
@@ -102,6 +116,7 @@ export async function POST(request: Request) {
         });
 
         results.success++;
+        results.credentials.push({ email: email.toLowerCase().trim(), tempPassword });
       } catch (error) {
         results.failed++;
         results.errors.push(`${csvUser.email || 'bilinmeyen'}: Sunucu hatası`);
