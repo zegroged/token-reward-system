@@ -1,0 +1,33 @@
+# Core
+asyncpg==0.30.0
+apscheduler==3.10.4
+httpx==0.27.0
+redis==5.0.0
+
+# ML (Phase 4 — aktif, import fallback mevcut)
+xgboost==2.0.3
+scikit-learn==1.4.0
+joblib==1.3.2
+numpy==1.26.4
+scipy==1.12.0
+
+# Security
+cryptography==42.0.0
+tenacity==8.2.3
+
+# AI Analyzer
+openai==1.30.0
+
+# Görsel Karşılaştırma (Campaign Verifier)
+Pillow==10.3.0
+
+# Blockchain (USDT TRC20 Transfer)
+tronpy==0.4.0
+
+# Scheduler persistence (PostgreSQL job store)
+SQLAlchemy==2.0.25
+psycopg2-binary==2.9.9
+
+# Utils
+python-dotenv==1.0.0
+structlog==24.1.0

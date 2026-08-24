@@ -1,0 +1,161 @@
+# 1923 Token Ödül Sistemi — Docker Compose
+
+services:
+  # ── PostgreSQL ──
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    environment:
+      POSTGRES_DB: token_system
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - db_password
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d token_system"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis ──
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: /bin/sh -c 'redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru --requirepass "$$(cat /run/secrets/redis_password)"'
+    secrets:
+      - redis_password
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$(cat /run/secrets/redis_password)\" ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Nginx Reverse Proxy ──
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      web:
+        condition: service_started
+    networks:
+      - external
+
+  # ── Next.js Web ──
+  web:
+    build: ./web
+    restart: unless-stopped
+    expose:
+      - "3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    secrets:
+      - db_password
+      - jwt_secret
+      - encryption_key
+      - meta_app_secret
+      - tiktok_client_key
+      - tiktok_client_secret
+      - internal_api_key
+      - redis_password
+      - resend_api_key
+      - netgsm_password
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_APP_URL: ${APP_DOMAIN:-https://localhost}
+      NETGSM_USER: ${NETGSM_USER:-}
+      NETGSM_HEADER: ${NETGSM_HEADER:-1923}
+    networks:
+      - internal
+      - external
+
+  # ── Python Bot ──
+  bot:
+    build: ./bot
+    user: "1001:1001"
+    restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    secrets:
+      - db_password
+      - encryption_key
+      - meta_app_secret
+      - tiktok_client_key
+      - tiktok_client_secret
+      - redis_password
+      - openai_api_key
+      - tron_private_key
+      - tron_api_key
+    environment:
+      PYTHONUNBUFFERED: "1"
+    # ★ FIX #15: Bot healthcheck — APScheduler asılırsa tespit edilir
+    # bot/main.py heartbeat görevi Redis'e 'bot:heartbeat' key'i yazar
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import redis,os; r=redis.Redis.from_url(os.environ.get('REDIS_URL','redis://redis:6379')); assert r.exists('bot:heartbeat')\""]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    networks:
+      - internal
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
+  redis_password:
+    file: ./secrets/redis_password.txt
+  jwt_secret:
+    file: ./secrets/jwt_secret.txt
+  encryption_key:
+    file: ./secrets/encryption_key.txt
+  meta_app_secret:
+    file: ./secrets/meta_app_secret.txt
+  tiktok_client_key:
+    file: ./secrets/tiktok_client_key.txt
+  tiktok_client_secret:
+    file: ./secrets/tiktok_client_secret.txt
+  internal_api_key:
+    file: ./secrets/internal_api_key.txt
+  openai_api_key:
+    file: ./secrets/openai_api_key.txt
+  resend_api_key:
+    file: ./secrets/resend_api_key.txt
+  netgsm_password:
+    file: ./secrets/netgsm_password.txt
+  tron_private_key:
+    file: ./secrets/tron_private_key.txt
+  tron_api_key:
+    file: ./secrets/tron_api_key.txt
+
+volumes:
+  pgdata:
+
+networks:
+  internal:
+    driver: bridge
+    internal: true
+  external:
+    driver: bridge

@@ -1,0 +1,24 @@
+# Dev overrides — hot reload, debug, ports exposed
+services:
+  web:
+    environment:
+      NODE_ENV: development
+      DEBUG: "true"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./web/src:/app/src
+      - ./web/public:/app/public
+
+  db:
+    ports:
+      - "5432:5432"
+
+  bot:
+    environment:
+      DRY_RUN: "true"
+      LOG_LEVEL: DEBUG
+
+  nginx:
+    profiles:
+      - donotstart   # Dev'de nginx çalışmaz

@@ -1,0 +1,70 @@
+# ---------------------------------------------------------------------------
+# Token Ödül Sistemi — .gitignore
+#
+# ⚠️ Bu proje Docker secrets kullanıyor (/run/secrets/). Gerçek sır dosyaları
+#    ASLA depoya girmez — yalnızca .env.example ve secrets/*.example kalır.
+# ---------------------------------------------------------------------------
+
+# --- Sırlar (KRİTİK) ---
+.env
+.env.*
+!.env.example
+secrets/
+!secrets/*.example
+*.key
+*.pem
+*.p12
+*.pfx
+credentials.json
+service-account*.json
+
+# --- Node / Next.js (web/) ---
+node_modules/
+.next/
+out/
+build/
+dist/
+.vercel/
+*.tsbuildinfo
+next-env.d.ts
+
+# --- Python (bot/) ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# --- Veritabanı ---
+*.sqlite
+*.sqlite3
+*.db
+pgdata/
+*.sql.gz
+*.dump
+
+# --- Docker ---
+docker-compose.override.yml
+
+# --- Loglar ve çalışma zamanı ---
+*.log
+logs/
+tmp/
+.cache/
+
+# --- Editör / işletim sistemi ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Gelistirme araci artiklari ---
+.claude/
+CLAUDE.md
+AGENTS.md
+.cursor/
+.aider*

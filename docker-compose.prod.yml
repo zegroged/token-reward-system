@@ -1,0 +1,19 @@
+# Production overrides — locked down, nginx active, no debug
+services:
+  web:
+    environment:
+      NODE_ENV: production
+      DEBUG: "false"
+
+  bot:
+    environment:
+      DRY_RUN: "false"
+      LOG_LEVEL: WARNING
+
+  db:
+    # No ports exposed in production
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

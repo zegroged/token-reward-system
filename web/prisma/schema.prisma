@@ -1,0 +1,316 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── KULLANICILAR ──
+model User {
+  id                     String    @id @default(uuid()) @db.Uuid
+  email                  String    @unique @db.VarChar(255)
+  phone                  String?   @unique @db.VarChar(20)
+  passwordHash           String    @map("password_hash") @db.VarChar(255)
+  fullName               String    @map("full_name") @db.VarChar(255)
+  role                   String    @default("employee") @db.VarChar(20)
+
+  // Doğrulama
+  emailVerified          Boolean   @default(false) @map("email_verified")
+  phoneVerified          Boolean   @default(false) @map("phone_verified")
+
+  // Instagram
+  instagramHandle        String?   @map("instagram_handle") @db.VarChar(100)
+  instagramUserId        String?   @map("instagram_user_id") @db.VarChar(50)
+  instagramTokenEnc      String?   @map("instagram_token_enc")
+  instagramTokenIv       String?   @map("instagram_token_iv") @db.VarChar(32)
+  instagramTokenExpires  DateTime? @map("instagram_token_expires")
+  instagramConnectedAt   DateTime? @map("instagram_connected_at")
+  encryptionKeyVersion   Int       @default(1) @map("encryption_key_version")
+
+  // TikTok
+  tiktokHandle           String?   @map("tiktok_handle") @db.VarChar(100)
+  tiktokUserId           String?   @map("tiktok_user_id") @db.VarChar(50)
+  tiktokTokenEnc         String?   @map("tiktok_token_enc")
+  tiktokTokenIv          String?   @map("tiktok_token_iv") @db.VarChar(32)
+  tiktokTokenExpires     DateTime? @map("tiktok_token_expires")
+  tiktokRefreshTokenEnc  String?   @map("tiktok_refresh_token_enc")
+  tiktokRefreshIv        String?   @map("tiktok_refresh_iv") @db.VarChar(32)
+  tiktokConnectedAt      DateTime? @map("tiktok_connected_at")
+
+  // Cüzdan
+  walletAddress          String?   @map("wallet_address") @db.VarChar(255)
+  walletNetwork          String    @default("TRC20") @map("wallet_network") @db.VarChar(20)
+
+  // Hesap durumu
+  isActive               Boolean   @default(true) @map("is_active")
+  deactivatedAt          DateTime? @map("deactivated_at")
+  withdrawalDeadline     DateTime? @map("withdrawal_deadline")
+
+  // KVKK
+  kvkkConsent            Boolean   @default(false) @map("kvkk_consent")
+  kvkkConsentAt          DateTime? @map("kvkk_consent_at")
+  kvkkDataProcessing     Boolean   @default(false) @map("kvkk_data_processing")
+  kvkkRetentionAccepted  Boolean   @default(false) @map("kvkk_retention_accepted")
+
+  // 2FA
+  totpSecretEnc          String?   @map("totp_secret_enc")
+  totpEnabled            Boolean   @default(false) @map("totp_enabled")
+
+  // Güvenlik
+  failedLoginAttempts    Int       @default(0) @map("failed_login_attempts")
+  lockedUntil            DateTime? @map("locked_until")
+  lastLoginIp            String?   @map("last_login_ip") @db.VarChar(45)
+  lastLoginCity          String?   @map("last_login_city") @db.VarChar(100)
+  forcePasswordChange    Boolean   @default(false) @map("force_password_change")
+
+  // Kimin kaydettiği
+  registeredById         String?   @map("registered_by_id") @db.Uuid
+
+  // Zaman
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+
+  // İlişkiler
+  balance                Balance?
+  transactions           Transaction[]
+  instagramData          InstagramData[]  @relation("UserInstagramData")
+  reviewedData           InstagramData[]  @relation("AdminReviewedData")
+  withdrawals            Withdrawal[]     @relation("UserWithdrawals")
+  approvedWithdrawals    Withdrawal[]     @relation("AdminApprovedWithdrawals")
+  poolActions            Pool[]
+  auditLogs              AuditLog[]
+  mlLabels               MlTrainingData[]
+  formulasCreated        FormulaVersion[]
+  notifications          Notification[]
+
+  @@map("users")
+}
+
+// ── BAKİYELER ──
+model Balance {
+  userId          String   @id @map("user_id") @db.Uuid
+  available       Decimal  @default(0) @db.Decimal(15, 2)
+  pending         Decimal  @default(0) @db.Decimal(15, 2)
+  totalEarned     Decimal  @default(0) @map("total_earned") @db.Decimal(15, 2)
+  totalWithdrawn  Decimal  @default(0) @map("total_withdrawn") @db.Decimal(15, 2)
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("balances")
+}
+
+// ── HAVUZ ──
+model Pool {
+  id             String   @id @default(uuid()) @db.Uuid
+  action         String   @db.VarChar(20)
+  amount         Decimal  @db.Decimal(15, 2)
+  runningBalance Decimal  @map("running_balance") @db.Decimal(15, 2)
+  description    String?
+  adminId        String?  @map("admin_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  admin          User?    @relation(fields: [adminId], references: [id])
+
+  @@map("pool")
+}
+
+// ── İŞLEMLER ──
+model Transaction {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String?  @map("user_id") @db.Uuid
+  type            String   @db.VarChar(20)
+  amount          Decimal  @db.Decimal(15, 2)
+  description     String?
+  formulaVersion  String?  @map("formula_version") @db.VarChar(10)
+  rawInput        Json?    @map("raw_input")
+  calculatedCheck Decimal? @map("calculated_check") @db.Decimal(15, 2)
+  referenceType   String?  @map("reference_type") @db.VarChar(30)
+  referenceId     String?  @map("reference_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  user            User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([type])
+  @@map("transactions")
+}
+
+// ── SOSYAL MEDYA VERİLERİ (Instagram + TikTok) ──
+model InstagramData {
+  id                String    @id @default(uuid()) @db.Uuid
+  userId            String?   @map("user_id") @db.Uuid
+  platform          String    @default("instagram") @db.VarChar(20)
+  reelId            String?   @map("reel_id") @db.VarChar(255)
+  reelUrl           String?   @map("reel_url")
+  collectedAt       DateTime  @default(now()) @map("collected_at")
+  source            String    @default("api") @db.VarChar(20)
+
+  viewCount         Int       @default(0) @map("view_count")
+  likeCount         Int       @default(0) @map("like_count")
+  commentCount      Int       @default(0) @map("comment_count")
+  saveCount         Int       @default(0) @map("save_count")
+  shareCount        Int       @default(0) @map("share_count")
+  reach             Int       @default(0)
+  impressions       Int       @default(0)
+
+  engagementRate    Decimal?  @map("engagement_rate") @db.Decimal(8, 6)
+  historicalZscore  Decimal?  @map("historical_zscore") @db.Decimal(8, 4)
+
+  analysisLevel     String?   @map("analysis_level") @db.VarChar(20)
+  authenticityScore Decimal?  @map("authenticity_score") @db.Decimal(5, 2)
+  isAuthentic       Boolean?  @map("is_authentic")
+  flagged           Boolean   @default(false)
+  flagReasons       Json?     @map("flag_reasons")
+
+  adminReviewed     Boolean   @default(false) @map("admin_reviewed")
+  adminOverride     Boolean?  @map("admin_override")
+  adminId           String?   @map("admin_id") @db.Uuid
+  adminNotes        String?   @map("admin_notes")
+  reviewedAt        DateTime? @map("reviewed_at")
+  rawApiResponse    Json?     @map("raw_api_response")
+
+  user              User?     @relation("UserInstagramData", fields: [userId], references: [id])
+  reviewer          User?     @relation("AdminReviewedData", fields: [adminId], references: [id])
+  mlLabels          MlTrainingData[]
+
+  @@index([userId])
+  @@index([collectedAt])
+  @@index([platform])
+  @@map("instagram_data")
+}
+
+// ── ÇEKİMLER ──
+model Withdrawal {
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String?   @map("user_id") @db.Uuid
+  amountToken    Decimal   @map("amount_token") @db.Decimal(15, 2)
+  amountUsdt     Decimal?  @map("amount_usdt") @db.Decimal(15, 4)
+  exchangeRate   Decimal?  @map("exchange_rate") @db.Decimal(15, 6)
+  walletAddress  String    @map("wallet_address") @db.VarChar(255)
+  walletNetwork  String    @default("TRC20") @map("wallet_network") @db.VarChar(20)
+  status         String    @default("pending") @db.VarChar(20)
+  adminId        String?   @map("admin_id") @db.Uuid
+  adminNotes     String?   @map("admin_notes")
+  txHash         String?   @unique @map("tx_hash") @db.VarChar(255)
+  txConfirmed    Boolean   @default(false) @map("tx_confirmed")
+  // ★ Idempotency: aynı onay için aynı transfer tetiklenmez
+  idempotencyKey String?   @unique @map("idempotency_key") @db.VarChar(64)
+  retryCount     Int       @default(0) @map("retry_count")
+  lastError      String?   @map("last_error")
+  requestedAt    DateTime  @default(now()) @map("requested_at")
+  approvedAt     DateTime? @map("approved_at")
+  processedAt    DateTime? @map("processed_at")
+  completedAt    DateTime? @map("completed_at")
+
+  user           User?     @relation("UserWithdrawals", fields: [userId], references: [id])
+  admin          User?     @relation("AdminApprovedWithdrawals", fields: [adminId], references: [id])
+
+  @@index([status])
+  @@index([userId])
+  @@map("withdrawals")
+}
+
+// ── ML EĞİTİM VERİSİ ──
+model MlTrainingData {
+  id              String   @id @default(uuid()) @db.Uuid
+  instagramDataId String?  @map("instagram_data_id") @db.Uuid
+  labeledBy       String?  @map("labeled_by") @db.Uuid
+  isAuthentic     Boolean  @map("is_authentic")
+  confidence      Decimal? @db.Decimal(5, 2)
+  notes           String?
+  labeledAt       DateTime @default(now()) @map("labeled_at")
+
+  instagramData   InstagramData? @relation(fields: [instagramDataId], references: [id])
+  labeler         User?          @relation(fields: [labeledBy], references: [id])
+
+  @@map("ml_training_data")
+}
+
+// ── FORMÜL VERSİYONLARI ──
+model FormulaVersion {
+  version              String   @id @db.VarChar(10)
+  baseRate             Decimal  @map("base_rate") @db.Decimal(10, 4)
+  engagementMultiplier Decimal  @default(1.0) @map("engagement_multiplier") @db.Decimal(5, 2)
+  dailyCap             Decimal? @map("daily_cap") @db.Decimal(15, 2)
+  minAuthenticityScore Decimal  @default(70) @map("min_authenticity_score") @db.Decimal(5, 2)
+  effectiveFrom        DateTime @map("effective_from")
+  effectiveUntil       DateTime? @map("effective_until")
+  createdBy            String?  @map("created_by") @db.Uuid
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  creator              User?    @relation(fields: [createdBy], references: [id])
+
+  @@map("formula_versions")
+}
+
+// ── AUDIT LOG ──
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  action    String   @db.VarChar(100)
+  details   Json?
+  ipAddress String?  @map("ip_address") @db.VarChar(45)
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_log")
+}
+
+// ── BOT KAYITLARI ──
+model BotRun {
+  id                     String    @id @default(uuid()) @db.Uuid
+  startedAt              DateTime  @map("started_at")
+  completedAt            DateTime? @map("completed_at")
+  status                 String    @default("running") @db.VarChar(20)
+  totalUsers             Int?      @map("total_users")
+  successfulUsers        Int?      @map("successful_users")
+  failedUsers            Int?      @map("failed_users")
+  totalReelsAnalyzed     Int?      @map("total_reels_analyzed")
+  totalTokensDistributed Decimal?  @map("total_tokens_distributed") @db.Decimal(15, 2)
+  flaggedCount           Int?      @map("flagged_count")
+  poolBalanceAfter       Decimal?  @map("pool_balance_after") @db.Decimal(15, 2)
+  errorLog               Json?     @map("error_log")
+  reportSent             Boolean   @default(false) @map("report_sent")
+  keyRotationPerformed   Boolean   @default(false) @map("key_rotation_performed")
+
+  @@index([startedAt])
+  @@map("bot_runs")
+}
+
+// ── VERİ SAKLAMA POLİTİKASI ──
+model DataRetentionPolicy {
+  id            String   @id @default(uuid()) @db.Uuid
+  dataType      String   @map("data_type") @db.VarChar(50)
+  retentionDays Int      @map("retention_days")
+  description   String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("data_retention_policy")
+}
+
+// ── BİLDİRİMLER ──
+model Notification {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  type      String   @db.VarChar(30) // info, warning, error, success, system
+  title     String   @db.VarChar(255)
+  message   String
+  isRead    Boolean  @default(false) @map("is_read")
+  link      String?  @db.VarChar(500)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@map("notifications")
+}
