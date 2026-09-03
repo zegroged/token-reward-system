@@ -9,6 +9,8 @@
 ![Docker Compose](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 ![License MIT](https://img.shields.io/badge/License-MIT-green)
 
+**Turkish README:** [README.tr.md](README.tr.md)
+
 ## Overview
 
 When a brand pays a creator per post, nobody can prove what the post actually earned. Screenshots
@@ -304,6 +306,15 @@ first. Both problems were knowable earlier than they were admitted, which was th
 
 This repository was also the Python and web layer of a larger advertising platform; the Go API, Go bot
 and Flutter client for that effort live in a separate repository and are not part of this codebase.
+
+**It was left half-finished, and it is shelved.** The gaps in
+[Known limitations](#known-limitations) are not oversights waiting on time — they are the work that
+would have to be done before this could serve anyone: no tests at all on a money path, `DRY_RUN`
+defaulting to the unsafe side, the XGBoost layer written but never trained or wired in, the anomaly
+detector and notifier complete but called by nothing, two-factor auth existing only as columns, and
+the Instagram scope mismatch that blocked the product in the first place. None of that is planned.
+The repository is a snapshot of where it stopped, not a base someone should build on without redoing
+those parts themselves.
 
 It is published as a reference implementation and portfolio piece: the interesting parts are the
 payout safety model, the cross-language encryption seam, the versioned key rotation and the graded
