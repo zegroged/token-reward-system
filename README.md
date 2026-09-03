@@ -11,6 +11,8 @@
 
 **Turkish README:** [README.tr.md](README.tr.md)
 
+**How this was built:** the code was written with AI assistance and reviewed by the author.
+
 ## Overview
 
 When a brand pays a creator per post, nobody can prove what the post actually earned. Screenshots

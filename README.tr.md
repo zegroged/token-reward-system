@@ -11,6 +11,8 @@
 
 [English README](README.md)
 
+**Nasıl yazıldı:** kod yapay zekâ yardımıyla yazıldı ve yazar tarafından gözden geçirildi.
+
 ## Genel bakış
 
 Bir marka bir içerik üreticisine gönderi başına ödeme yaptığında, o gönderinin gerçekte ne kazandırdığını kimse kanıtlayamaz. Ekran görüntüleri kolayca düzenlenir ve SMM panelleri 10.000 izlenmeyi bir kahve parasına satar. Buradaki öncül, ekran görüntüsünü döngüden tamamen çıkarmaktı: üretici platformu OAuth ile yetkilendirir ve sistem, üreticinin gönderdiği hiçbir şeye güvenmek yerine sayıları doğrudan Instagram'ın ve TikTok'un kendi API'lerinden okur.
