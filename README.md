@@ -2,6 +2,7 @@
 
 > Creators connect their Instagram/TikTok accounts; a Python worker reads real view counts from the official platform APIs, scores each post for authenticity, and pays the earned balance out as USDT on Tron.
 
+[![syntax](https://github.com/zegroged/token-reward-system/actions/workflows/syntax.yml/badge.svg)](https://github.com/zegroged/token-reward-system/actions/workflows/syntax.yml)
 ![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![Next.js 14](https://img.shields.io/badge/Next.js-14-000000?logo=nextdotjs&logoColor=white)
 ![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)

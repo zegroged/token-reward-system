@@ -2,6 +2,7 @@
 
 > İçerik üreticileri Instagram/TikTok hesaplarını bağlar; bir Python worker'ı resmî platform API'lerinden gerçek izlenme sayılarını okur, her gönderiyi özgünlük açısından puanlar ve kazanılan bakiyeyi Tron üzerinde USDT olarak öder.
 
+[![syntax](https://github.com/zegroged/token-reward-system/actions/workflows/syntax.yml/badge.svg)](https://github.com/zegroged/token-reward-system/actions/workflows/syntax.yml)
 ![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![Next.js 14](https://img.shields.io/badge/Next.js-14-000000?logo=nextdotjs&logoColor=white)
 ![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
