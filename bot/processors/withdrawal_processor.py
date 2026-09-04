@@ -13,7 +13,6 @@ Her 5 dakikada çalışır, approved çekimleri bulur ve TRON'a gönderir.
   5. Başarısızlıkta → broadcast olmamışsa retry, olmuşsa freeze.
 """
 import asyncio
-import hashlib
 import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -79,16 +78,6 @@ class WithdrawalProcessor:
             user_id, notif_type, title, message
         )
 
-    @staticmethod
-    def _derive_idempotency_key(withdrawal_id: str, approved_at: datetime) -> str:
-        """
-        Deterministik idempotency anahtarı.
-        Aynı (id, approved_at) her zaman aynı key'i üretir; yeniden onaylansa
-        (edge case) bile ayrı transferdir.
-        """
-        raw = f"{withdrawal_id}|{approved_at.isoformat() if approved_at else ''}"
-        return hashlib.sha256(raw.encode()).hexdigest()[:64]
-
     async def _claim_withdrawal(self) -> dict | None:
         """
         Tek bir 'approved' withdrawal'ı ATOMIK olarak kendi üzerimize al.
@@ -113,6 +102,10 @@ class WithdrawalProcessor:
                 UPDATE withdrawals w
                    SET status = 'processing',
                        processed_at = NOW(),
+                       -- Idempotency anahtarinin TEK kaynagi burasi.
+                       -- Python tarafinda ikinci bir uretici YAZMAYIN:
+                       -- datetime.isoformat() ile timestamptz::text farkli
+                       -- dizgi uretir, hash tutmaz ve benzersizlik atlanir.
                        idempotency_key = COALESCE(
                            w.idempotency_key,
                            encode(sha256(
